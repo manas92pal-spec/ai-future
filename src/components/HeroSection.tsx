@@ -3,7 +3,6 @@ import { ArrowRight, Sparkles, Target, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import heroBg from "@/assets/hero-bg.jpg";
-import { Button } from "./ui/button";
 
 export default function HeroSection() {
   return (
