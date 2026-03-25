@@ -6,7 +6,12 @@ import heroBg from "@/assets/hero-bg.jpg";
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-gradient">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Hero background */}
+      <div className="absolute inset-0">
+        <img src={heroBg} alt="" className="w-full h-full object-cover opacity-20" width={1920} height={1080} />
+        <div className="absolute inset-0 bg-background/70" />
+      </div>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/5 blur-3xl animate-pulse-glow" />
