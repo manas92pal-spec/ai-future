@@ -1,12 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
-import { Brain, Menu, X } from "lucide-react";
+import { Brain, Menu, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
 const navLinks = [
   { to: "/", label: "Home" },
-  { to: "/roadmap", label: "Roadmap Generator" },
+  { to: "/roadmap", label: "Roadmap" },
   { to: "/resume", label: "Resume Analyzer" },
+  { to: "/skill-gap", label: "Skill Gap" },
+  { to: "/career-path", label: "Career Path" },
+  { to: "/project-ideas", label: "Projects" },
+  { to: "/career-sim", label: "Simulator" },
+  { to: "/interview", label: "Interview" },
 ];
 
 export default function Navbar() {
@@ -26,12 +31,12 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden lg:flex items-center gap-0.5">
           {navLinks.map((l) => (
             <Link
               key={l.to}
               to={l.to}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 location.pathname === l.to
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -43,14 +48,14 @@ export default function Navbar() {
         </div>
 
         {/* Mobile toggle */}
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)}>
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}>
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl">
+        <div className="lg:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl max-h-[70vh] overflow-y-auto">
           {navLinks.map((l) => (
             <Link
               key={l.to}

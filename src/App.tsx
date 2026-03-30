@@ -7,6 +7,11 @@ import ChatBot from "@/components/ChatBot";
 import Index from "./pages/Index.tsx";
 import RoadmapPage from "./pages/RoadmapPage.tsx";
 import ResumePage from "./pages/ResumePage.tsx";
+import SkillGapPage from "./pages/SkillGapPage.tsx";
+import CareerPathPage from "./pages/CareerPathPage.tsx";
+import ProjectIdeasPage from "./pages/ProjectIdeasPage.tsx";
+import CareerSimPage from "./pages/CareerSimPage.tsx";
+import InterviewPage from "./pages/InterviewPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -21,6 +26,11 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/resume" element={<ResumePage />} />
+          <Route path="/skill-gap" element={<SkillGapPage />} />
+          <Route path="/career-path" element={<CareerPathPage />} />
+          <Route path="/project-ideas" element={<ProjectIdeasPage />} />
+          <Route path="/career-sim" element={<CareerSimPage />} />
+          <Route path="/interview" element={<InterviewPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <ChatBot />
