@@ -184,7 +184,7 @@ function getSkillGap(goal: string, current: string[]): { have: string[]; need: s
 }
 
 function getStages(goal: string) {
-  const stagesMap: Record<string, ReturnType<typeof getStages>> = {
+  const stagesMap: Record<string, { title: string; timeline: string; skills: string[]; projects: string[]; tools: string[]; resources: string[] }[]> = {
     "AI/ML Engineer": [
       { title: "Stage 1: Math & Python Foundations", timeline: "0–3 Months", skills: ["Python programming", "Linear Algebra & Calculus", "Probability & Statistics"], projects: ["NumPy matrix operations library", "Statistical analysis dashboard", "Data visualization with Matplotlib"], tools: ["Python", "Jupyter Notebook", "NumPy", "Pandas"], resources: ["Khan Academy Math", "MIT OpenCourseWare", "Python for Data Science (Coursera)"] },
       { title: "Stage 2: Machine Learning Core", timeline: "3–6 Months", skills: ["Supervised & Unsupervised Learning", "Feature Engineering", "Model Evaluation & Tuning"], projects: ["House price predictor", "Customer segmentation system", "Spam classifier with NLP"], tools: ["Scikit-learn", "XGBoost", "Kaggle", "Weights & Biases"], resources: ["Andrew Ng ML Course", "Hands-On ML (O'Reilly)", "Kaggle Competitions"] },
