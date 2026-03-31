@@ -3,6 +3,7 @@
 export interface ResumeAnalysis {
   isResume: boolean;
   rejectReason?: string;
+  confidence: number; // 0-100 how confident we are this is a resume
   overallScore: number;
   skillScore: number;
   experienceScore: number;
@@ -52,14 +53,6 @@ const SOFT_SKILLS = [
   "analytical", "creative", "adaptable", "detail-oriented", "self-motivated",
 ];
 
-const RESUME_KEYWORDS = [
-  "experience", "education", "skills", "work", "employment", "qualification",
-  "objective", "summary", "profile", "internship", "project", "certification",
-  "university", "college", "degree", "bachelor", "master", "gpa", "cgpa",
-  "resume", "curriculum vitae", "cv", "contact", "email", "phone",
-  "achievements", "awards", "publications", "references", "volunteer",
-];
-
 const ACTION_VERBS = [
   "developed", "implemented", "designed", "created", "built", "led", "managed",
   "optimized", "improved", "achieved", "increased", "reduced", "launched",
@@ -81,6 +74,28 @@ const ROLE_SKILL_MAP: Record<string, string[]> = {
   "Data Engineer": ["python", "sql", "spark", "kafka", "airflow", "etl", "aws", "docker"],
   "UI/UX Designer": ["figma", "ui/ux", "wireframing", "photoshop", "illustrator", "html", "css"],
 };
+
+// ─── Non-resume detection patterns ───
+const NON_RESUME_PATTERNS = [
+  /chapter\s+\d/i,
+  /table\s+of\s+contents/i,
+  /isbn/i,
+  /acknowledgements/i,
+  /bibliography/i,
+  /abstract\s*[:\n]/i,
+  /^dear\s+(sir|madam|hiring|mr|ms|mrs)/im,
+  /sincerely|regards|yours\s+truly/i,
+  /invoice\s*(number|no|#|date)/i,
+  /total\s+amount|subtotal|tax\s+amount/i,
+  /receipt|order\s+confirmation/i,
+  /terms\s+and\s+conditions/i,
+  /privacy\s+policy/i,
+  /user\s+agreement/i,
+  /question\s*\d|answer\s*:/i,
+  /exam|quiz|test\s+paper/i,
+  /lecture\s+notes/i,
+  /slide\s+\d/i,
+];
 
 function detectSkills(text: string): { technical: string[]; soft: string[] } {
   const lower = text.toLowerCase();
@@ -128,23 +143,95 @@ function detectSections(text: string) {
   };
 }
 
-export function isResumeContent(text: string): boolean {
-  const lower = text.toLowerCase();
-  let matchCount = 0;
-  const essentialKeywords = ["experience", "education", "skills", "email", "phone", "project", "university", "college", "degree", "internship", "work"];
-  for (const kw of essentialKeywords) {
-    if (lower.includes(kw)) matchCount++;
+/**
+ * Multi-signal resume detection.
+ * Returns a confidence score 0–100 and a boolean.
+ */
+export function isResumeContent(text: string): { isResume: boolean; confidence: number; reason?: string } {
+  if (!text || text.trim().length < 50) {
+    return { isResume: false, confidence: 0, reason: "The uploaded file contains too little text to be a resume." };
   }
+
+  const lower = text.toLowerCase();
+  const wordCount = text.split(/\s+/).length;
+
+  // ── Check for non-resume document types first ──
+  let nonResumeHits = 0;
+  for (const pattern of NON_RESUME_PATTERNS) {
+    if (pattern.test(text)) nonResumeHits++;
+  }
+  if (nonResumeHits >= 3) {
+    return { isResume: false, confidence: 5, reason: "This appears to be a book, letter, invoice, or academic document — not a resume. Please upload your resume (PDF, TXT, or DOCX)." };
+  }
+
+  // ── Positive resume signals ──
+  let score = 0;
+
+  // Contact info (strong signal)
   const hasEmail = /[\w.-]+@[\w.-]+\.\w+/.test(text);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(text);
-  return matchCount >= 3 || (matchCount >= 2 && (hasEmail || hasPhone));
+  if (hasEmail) score += 20;
+  if (hasPhone) score += 15;
+
+  // Section headers (strong signals)
+  const sectionPatterns = [
+    { pattern: /\b(work\s+)?experience\b/i, weight: 15 },
+    { pattern: /\beducation\b/i, weight: 15 },
+    { pattern: /\bskills\b/i, weight: 12 },
+    { pattern: /\bproject/i, weight: 8 },
+    { pattern: /\binternship/i, weight: 10 },
+    { pattern: /\bsummary\b|objective\b/i, weight: 8 },
+    { pattern: /\bcertif/i, weight: 6 },
+    { pattern: /\bachievement/i, weight: 6 },
+    { pattern: /\buniversity|college|degree|bachelor|master\b/i, weight: 10 },
+    { pattern: /\bresume\b|\bcurriculum\s+vitae\b|\bcv\b/i, weight: 12 },
+  ];
+  for (const { pattern, weight } of sectionPatterns) {
+    if (pattern.test(lower)) score += weight;
+  }
+
+  // Tech skills presence (moderate signal)
+  const techHits = TECH_SKILLS.filter((s) => lower.includes(s)).length;
+  score += Math.min(15, techHits * 2);
+
+  // Action verbs (moderate signal)
+  const verbHits = ACTION_VERBS.filter((v) => lower.includes(v)).length;
+  score += Math.min(10, verbHits * 2);
+
+  // LinkedIn/GitHub links
+  if (/linkedin\.com/i.test(text)) score += 5;
+  if (/github\.com/i.test(text)) score += 5;
+
+  // Penalize very short or very long docs
+  if (wordCount < 80) score -= 15;
+  if (wordCount > 5000) score -= 10;
+
+  // Penalize if mostly numbers (spreadsheet/data dump)
+  const digitRatio = (text.match(/\d/g) || []).length / text.length;
+  if (digitRatio > 0.4) score -= 20;
+
+  const confidence = Math.max(0, Math.min(100, score));
+  const isResume = confidence >= 30;
+
+  if (!isResume) {
+    return {
+      isResume: false,
+      confidence,
+      reason: "This file doesn't appear to be a resume. A resume typically includes sections like Experience, Education, Skills, and contact information (email/phone). Please upload a valid resume.",
+    };
+  }
+
+  return { isResume: true, confidence };
 }
 
 export function analyzeResume(text: string): ResumeAnalysis {
-  if (!isResumeContent(text)) {
+  const resumeCheck = isResumeContent(text);
+
+  if (!resumeCheck.isResume) {
     return {
       isResume: false,
-      rejectReason: "This doesn't appear to be a resume. Please upload a valid resume file (PDF, DOCX, or TXT) containing sections like Experience, Education, Skills, and contact information.",
+      rejectReason: resumeCheck.reason,
+      confidence: resumeCheck.confidence,
       overallScore: 0, skillScore: 0, experienceScore: 0, projectScore: 0, achievementScore: 0,
       educationScore: 0, formattingScore: 0, atsScore: 0,
       detectedSkills: [], missingSkills: [], strengths: [], improvements: [],
@@ -293,6 +380,7 @@ export function analyzeResume(text: string): ResumeAnalysis {
 
   return {
     isResume: true,
+    confidence: resumeCheck.confidence,
     overallScore, skillScore, experienceScore, projectScore, achievementScore,
     educationScore, formattingScore, atsScore,
     detectedSkills: allDetected, missingSkills, strengths, improvements,
